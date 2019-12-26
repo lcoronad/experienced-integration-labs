@@ -12,6 +12,14 @@
   <packaging>bundle</packaging>
   <name>Customer :: Application :: Core :: Artifacts</name>
   
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.camel</groupId>
+      <artifactId>camel-test-spring</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  
   <build>
     <plugins>
       <plugin>

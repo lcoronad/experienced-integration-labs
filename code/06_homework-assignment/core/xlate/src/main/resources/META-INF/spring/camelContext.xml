@@ -1,33 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-  xmlns:camel="http://camel.apache.org/schema/spring" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:osgi="http://www.springframework.org/schema/osgi"
-  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-  http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd
-  http://www.springframework.org/schema/osgi http://www.springframework.org/schema/osgi/spring-osgi.xsd">
-
-  <bean id="serviceStrategy"
-    class="org.apache.camel.dataformat.soap.name.ServiceInterfaceStrategy">
-    <constructor-arg value="com.sun.mdm.index.webservice.PersonEJB" />
-    <constructor-arg value="true" />
-  </bean>
-
-  <!-- This reference just lets all of our routes use the same
+    xmlns:camel="http://camel.apache.org/schema/spring"
+    xmlns:osgi="http://www.springframework.org/schema/osgi"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd   http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd   http://www.springframework.org/schema/osgi http://www.springframework.org/schema/osgi/spring-osgi.xsd">
+    
+    <bean
+        class="org.apache.camel.dataformat.soap.name.ServiceInterfaceStrategy" id="serviceStrategy">
+        <constructor-arg value="com.sun.mdm.index.webservice.PersonEJB"/>
+        <constructor-arg value="true"/>
+    </bean>
+    
+    <bean id="TransformToExecuteMatch" class="com.redhat.customer.translate.TransformToExecuteMatch" />
+    
+    <!-- This reference just lets all of our routes use the same
   connection pool set up in the mq-service project-->
-  <osgi:reference id="activemqService" interface="org.apache.camel.Component" />
-
-  <camelContext id="xlatePerson" xmlns="http://camel.apache.org/schema/spring" trace="false" typeConverterStatisticsEnabled="true">
-
-    <dataFormats>
-      <soapjaxb contextPath="com.sun.mdm.index.webservice" id="nextgateFormat" elementNameStrategyRef="serviceStrategy" />
-      <jaxb id="personFormat" contextPath="com.customer.app" partClass="com.customer.app.Person" />
-    </dataFormats>
-
-    <route id="translate">
-
-
-    </route>
-
-  </camelContext>
-
+    <osgi:reference id="activemqService" interface="org.apache.camel.Component"/>
+    
+    <camelContext id="xlatePerson" trace="false"
+        typeConverterStatisticsEnabled="true" xmlns="http://camel.apache.org/schema/spring">
+        
+        <dataFormats>
+            <soapjaxb contextPath="com.sun.mdm.index.webservice"
+                elementNameStrategyRef="serviceStrategy" id="nextgateFormat"/>
+            <jaxb contextPath="com.customer.app" id="personFormat" partClass="com.customer.app.Person"/>
+        </dataFormats>
+        
+        <route id="translate">
+            <from id="_from1" uri="activemq:queue:q.empi.deim.in"/>
+            <log id="_log1" message="Xlate: Inicia la ruta"/>
+            <unmarshal id="_unmarshal1" ref="personFormat"/>
+            <log id="_log2" message="Xlate: Transforma el mensaje"/>
+            <convertBodyTo id="_convert1" type="com.sun.mdm.index.webservice.ExecuteMatchUpdate" />
+            <log id="_log3" message="Xlate: Genera ExecuteMatchUpdate ${body}"/>
+            <marshal id="_marshal1" ref="nextgateFormat"/>
+            <log id="_log4" message="Xlate: Transforma el mensaje a ExecuteMatchUpdate"/>
+            <to id="_to1" pattern="InOnly" uri="activemq:queue:q.empi.nextgate.out"/>
+        </route>
+    </camelContext>
 </beans>
